@@ -4,12 +4,16 @@ import koaBody from 'koa-body';
 import usersRouter from './routes/users';
 import copybooksRouter from './routes/copybooks';
 import lettersRouter from './routes/letters';
+import collectsRouter from './routes/collects';
 import koajwt from 'koa-jwt';
 // import { SECRET } from './global';
 import { formatResponse } from '../utils/common';
 import { SECRET } from './global';
 import path from 'path';
 import koaStatic from 'koa-static';
+import articleRouter from './routes/article';
+import attentionRouter from './routes/attention';
+import commentRouter from './routes/comment';
 
 const app = new Koa();
 app.use(cors());
@@ -49,7 +53,10 @@ app.use(
       /^\/api\/users\/has/,
       /^\/api\/users\/register/,
       /^\/api\/copybook\/list/,
-      /^\/api\/letters\/list/
+      /^\/api\/copybook\/copybook-detail/,
+      /^\/api\/letters\/list/,
+      /^\/api\/letters\/letter-detail/,
+      /^\/api\/articles\/get-all-articles/
     ]
   })
 );
@@ -57,6 +64,11 @@ app.use(
 app.use(usersRouter.routes()).use(usersRouter.allowedMethods());
 app.use(copybooksRouter.routes()).use(copybooksRouter.allowedMethods());
 app.use(lettersRouter.routes()).use(lettersRouter.allowedMethods());
+app.use(collectsRouter.routes()).use(collectsRouter.allowedMethods());
+app.use(articleRouter.routes()).use(articleRouter.allowedMethods());
+app.use(attentionRouter.routes()).use(attentionRouter.allowedMethods());
+app.use(commentRouter.routes()).use(commentRouter.allowedMethods());
+
 app.listen(3001, () => {
   console.log('server is running at http://localhost:3001');
 });

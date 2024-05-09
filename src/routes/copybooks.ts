@@ -38,10 +38,12 @@ interface CopybookDetail {
   isCollected?: number;
 }
 
-router.get('/list', async ctx => {
+router.post('/list', async ctx => {
   try {
-    // 获取 copybooks 表的所数据并返回
-    const [result] = (await Connect.query('SELECT id,name,author,path FROM copybooks')) as RowDataPacket[];
+    const { search } = JSON.parse(ctx.request.body) as { search: string };
+    // 获取 copybooks 表的所数据并返回，可以模糊查询name和author
+    const query = `SELECT * FROM copybooks WHERE name LIKE '%${search}%' OR author LIKE '%${search}%'`;
+    const [result] = (await Connect.query(query)) as RowDataPacket[];
 
     const copybooks: Array<CopybookListInfo> = Array.isArray(result)
       ? result.map((row: Copybook) => {
@@ -67,9 +69,9 @@ router.get('/copybook-detail/:id', async ctx => {
   try {
     const { id } = ctx.params;
 
-    const token = ctx.request.header.authorization as string;
-    const decoded = JWT.verify(token.split(' ')[1], SECRET);
-    const { email } = decoded as { email: string };
+    // const token = ctx.request.header.authorization as string;
+    // const decoded = JWT.verify(token.split(' ')[1], SECRET);
+    // const { email } = decoded as { email: string };
 
     const [result] = (await Connect.query('SELECT * FROM copybooks WHERE id = ?', [id])) as RowDataPacket[];
 
@@ -79,10 +81,10 @@ router.get('/copybook-detail/:id', async ctx => {
       .toString('base64');
 
     // 获取 userCollected 表中的 isCollected 字段
-    const [isCollected] = (await Connect.query(
-      'SELECT isCollected FROM userCollected WHERE user_email = ? AND copybook_id = ?',
-      [email, id]
-    )) as RowDataPacket[];
+    // const [isCollected] = (await Connect.query(
+    //   'SELECT isCollected FROM userCollected WHERE user_email = ? AND copybook_id = ?',
+    //   [email, id]
+    // )) as RowDataPacket[];
 
     const copybookDetail: CopybookDetail = {
       id: result[0].id,
@@ -91,28 +93,9 @@ router.get('/copybook-detail/:id', async ctx => {
       mainPic,
       description: result[0].description
     };
-
-    // const pics = fs.readdirSync(path).map((pic: string) => {
-    //   return fs.readFileSync(path + '/' + pic, {}).toString('base64');
-    // });
-    // const copybooks: Array<Copybook> = Array.isArray(result)
-    //   ? result.map((row: Copybook) => {
-    //       row.content = [];
-    //       // 遍历文件夹下的文件，将图片转为base64加入到content中
-    //       const files = fs.readdirSync(path.join(__dirname, '../public', row.path.toString()));
-
-    //       files.forEach(file => {
-    //         const content = fs.readFileSync(path.join(__dirname, '../public', row.path.toString(), file), {
-    //           encoding: 'base64'
-    //         });
-    //         row.content.push(content);
-    //       });
-    //       return row;
-    //     })
-    //   : [];
-    if (isCollected.length > 0) {
-      copybookDetail.isCollected = isCollected[0].isCollected;
-    }
+    // if (isCollected.length > 0) {
+    //   copybookDetail.isCollected = isCollected[0].isCollected;
+    // }
     return (ctx.body = formatResponse(200, 'success', { ...copybookDetail }));
   } catch (error) {
     if (error instanceof Error) {
@@ -121,52 +104,52 @@ router.get('/copybook-detail/:id', async ctx => {
   }
 });
 
-// 收藏
-router.post('/collect', async ctx => {
-  try {
-    const token = ctx.request.headers.authorization as string;
-    const decoded = JWT.verify(token.split(' ')[1], SECRET);
-    const { email } = decoded as { email: string };
+// // 收藏
+// router.post('/collect', async ctx => {
+//   try {
+//     const token = ctx.request.headers.authorization as string;
+//     const decoded = JWT.verify(token.split(' ')[1], SECRET);
+//     const { email } = decoded as { email: string };
 
-    const { copybookId, isCollected } = ctx.request.body as { copybookId: string; isCollected: number };
+//     const { copybookId, isCollected } = ctx.request.body as { copybookId: string; isCollected: number };
 
-    // 查询数据库是否已经收藏
-    const [result] = (await Connect.query('SELECT * FROM userCollected WHERE user_email = ? AND copybook_id = ?', [
-      email,
-      copybookId
-    ])) as RowDataPacket[];
+//     // 查询数据库是否已经收藏
+//     const [result] = (await Connect.query('SELECT * FROM userCollected WHERE user_email = ? AND copybook_id = ?', [
+//       email,
+//       copybookId
+//     ])) as RowDataPacket[];
 
-    if (result.length > 0) {
-      // 更新数据库
-      const [res] = (await Connect.query(
-        'UPDATE userCollected SET isCollected = ? WHERE user_email = ? AND copybook_id = ?',
-        [isCollected, email, copybookId]
-      )) as RowDataPacket[];
-      if (res.affectedRows === 1) {
-        ctx.body = formatResponse(200, 'success', 'Collect successfully');
-      } else {
-        ctx.body = formatResponse(500, 'fail', 'Collect failed');
-      }
-    } else {
-      // 生成uuid
-      const id = generateUUID();
-      // 插入数据库
-      const [res] = (await Connect.query(
-        'INSERT INTO userCollected (id, user_email, copybook_id, isCollected) VALUES (?,?,?,?)',
-        [id, email, copybookId, isCollected]
-      )) as RowDataPacket[];
-      if (res.affectedRows === 1) {
-        ctx.body = formatResponse(200, 'success', 'Collect successfully');
-      } else {
-        ctx.body = formatResponse(500, 'fail', 'Collect failed');
-      }
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      ctx.body = formatResponse(500, 'fail', error.message);
-    }
-  }
-});
+//     if (result.length > 0) {
+//       // 更新数据库
+//       const [res] = (await Connect.query(
+//         'UPDATE userCollected SET isCollected = ? WHERE user_email = ? AND copybook_id = ?',
+//         [isCollected, email, copybookId]
+//       )) as RowDataPacket[];
+//       if (res.affectedRows === 1) {
+//         ctx.body = formatResponse(200, 'success', 'Collect successfully');
+//       } else {
+//         ctx.body = formatResponse(500, 'fail', 'Collect failed');
+//       }
+//     } else {
+//       // 生成uuid
+//       const id = generateUUID();
+//       // 插入数据库
+//       const [res] = (await Connect.query(
+//         'INSERT INTO userCollected (id, user_email, copybook_id, isCollected) VALUES (?,?,?,?)',
+//         [id, email, copybookId, isCollected]
+//       )) as RowDataPacket[];
+//       if (res.affectedRows === 1) {
+//         ctx.body = formatResponse(200, 'success', 'Collect successfully');
+//       } else {
+//         ctx.body = formatResponse(500, 'fail', 'Collect failed');
+//       }
+//     }
+//   } catch (error) {
+//     if (error instanceof Error) {
+//       ctx.body = formatResponse(500, 'fail', error.message);
+//     }
+//   }
+// });
 
 // 添加浏览记录
 router.post('/addHistory', async ctx => {

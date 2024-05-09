@@ -138,10 +138,24 @@ router.get('/self-info', async ctx => {
     const email_address = decoded_res.email;
     const [result] = (await Connect.query('SELECT * FROM users WHERE email = ?', [email_address])) as RowDataPacket[];
     const user = result[0] as User;
-    const { email, name, avatar, description, fans_count, attention_count, work_count } = user;
+    const { email, name, avatar, description } = user;
+    const [fans_countResult] = (await Connect.query('SELECT COUNT(*) FROM attentions WHERE attention_user_email = ?', [
+      email
+    ])) as RowDataPacket[];
+    const fans_count = fans_countResult[0]['COUNT(*)'];
+    const [attention_countResult] = (await Connect.query('SELECT COUNT(*) FROM attentions WHERE user_email = ?', [
+      email
+    ])) as RowDataPacket[];
+    const attention_count = attention_countResult[0]['COUNT(*)'];
+    const [work_countResult] = (await Connect.query('SELECT COUNT(*) FROM articles WHERE user_email = ?', [
+      email
+    ])) as RowDataPacket[];
+    const work_count = work_countResult[0]['COUNT(*)'];
     const avatarImage = avatar
       ? fs.readFileSync(path.join(__dirname, '../public/images/avatar', avatar), {}).toString('base64')
       : null;
+    console.log(fans_countResult[0], attention_countResult[0], work_countResult[0]);
+
     ctx.body = formatResponse(200, 'success', {
       email,
       name,
@@ -243,8 +257,9 @@ router.get('/self-collection', async ctx => {
     const copybooks = [];
     for (const copybookId of copybookIds) {
       const [res] = (await Connect.query('SELECT * FROM copybooks WHERE id = ?', [copybookId])) as RowDataPacket[];
+      const firstPic = fs.readdirSync(path.join(__dirname, '../public', res[0].path.toString()))[0];
       const mainPic = fs
-        .readFileSync(path.join(__dirname, '../public', res[0].path.toString(), '1.jpg'), {})
+        .readFileSync(path.join(__dirname, '../public', res[0].path.toString(), firstPic), {})
         .toString('base64');
       copybooks.push({
         id: res[0].id,
@@ -277,8 +292,9 @@ router.get('/self-history', async ctx => {
     const copybooks = [];
     for (const copybookId of copybookIds) {
       const [res] = (await Connect.query('SELECT * FROM copybooks WHERE id = ?', [copybookId])) as RowDataPacket[];
+      const firstPic = fs.readdirSync(path.join(__dirname, '../public', res[0].path.toString()))[0];
       const mainPic = fs
-        .readFileSync(path.join(__dirname, '../public', res[0].path.toString(), '1.jpg'), {})
+        .readFileSync(path.join(__dirname, '../public', res[0].path.toString(), firstPic), {})
         .toString('base64');
       copybooks.push({
         id: res[0].id,
