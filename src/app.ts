@@ -14,6 +14,8 @@ import koaStatic from 'koa-static';
 import articleRouter from './routes/article';
 import attentionRouter from './routes/attention';
 import commentRouter from './routes/comment';
+import competitionRouter from './routes/competition';
+import rankRouter from './routes/rank';
 
 const app = new Koa();
 app.use(cors());
@@ -68,6 +70,8 @@ app.use(collectsRouter.routes()).use(collectsRouter.allowedMethods());
 app.use(articleRouter.routes()).use(articleRouter.allowedMethods());
 app.use(attentionRouter.routes()).use(attentionRouter.allowedMethods());
 app.use(commentRouter.routes()).use(commentRouter.allowedMethods());
+app.use(competitionRouter.routes()).use(competitionRouter.allowedMethods());
+app.use(rankRouter.routes()).use(rankRouter.allowedMethods());
 
 app.listen(3001, () => {
   console.log('server is running at http://localhost:3001');
